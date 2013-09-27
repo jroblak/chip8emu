@@ -16,6 +16,7 @@
 				o Key presses
 				o Graphics
 		   - Finish Opcodes
+		        o Sprite and key-based
 	       - Test Opcodes
 */
 
@@ -276,12 +277,25 @@ void chip8_exec(chip8 *c8) {
 					c8->pc += 2;
 					break;
 				case 0x0033: // Fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
+					c8->memory[c8->I] = c8->V[(offset & 0x0F00) >> 8] / 100;
+					c8->memory[c8->I + 1] = (c8->V[(offset & 0x0F00) >> 8] % 100) / 10;
+					c8->memory[c8->I + 2] = c8->V[(offset & 0x0F00) >> 8] % 10;
 					c8->pc += 2;
 					break;
 				case 0x0055: // Fx55 - Store registers V0 through Vx in memory starting at location I.
+					int i;
+					for (i = 0; i < ((offset & 0x0F00) >> 8); i++) {
+						c8->memory[c8->I] = V[i];
+						c8->I++
+					}
 					c8->pc += 2;
 					break;
 				case 0x0065: // Fx65 - Read registers V0 through Vx from memory starting at location I.
+					int i;
+					for (i = 0; i < ((offset & 0x0F00) >> 8); i++) {
+						V[i] = c8->memory[c8->I];
+						c8->I++
+					}
 					c8->pc += 2;
 					break;
 				default:
