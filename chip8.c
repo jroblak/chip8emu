@@ -110,6 +110,8 @@ void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
 
 void chip8_exec(chip8 *c8) {
 	unsigned short opcode = (c8->memory[c8->pc] << 8) | c8->memory[c8->pc + 1];
+	int keypress = 0;
+	int i;
 
 	printf("Executing: 0x%X\n", opcode);
 	printf("pc: 0x%X\n", c8->pc);
@@ -225,7 +227,6 @@ void chip8_exec(chip8 *c8) {
 			c8->pc += 2;
 			break;
 		case 0xD000: // Dxyn - Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
-			int i;
 			for (i = 0; i < (opcode & 0x000F); i++) {
 				//c8->memory[c8->I];
 				c8->I++;
@@ -254,7 +255,6 @@ void chip8_exec(chip8 *c8) {
 					c8->pc += 2;
 					break;
 				case 0x000A: // Fx0A - Wait for a key press, store the value of the key in Vx.
-					int keypress = 0;
 					while (keypress = 0) {
 						
 					}
@@ -284,7 +284,6 @@ void chip8_exec(chip8 *c8) {
 					c8->pc += 2;
 					break;
 				case 0x0055: // Fx55 - Store registers V0 through Vx in memory starting at location I.
-					int i;
 					for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
 						c8->memory[c8->I] = c8->V[i];
 						c8->I++;
@@ -292,7 +291,6 @@ void chip8_exec(chip8 *c8) {
 					c8->pc += 2;
 					break;
 				case 0x0065: // Fx65 - Read registers V0 through Vx from memory starting at location I.
-					int i;
 					for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
 						c8->V[i] = c8->memory[c8->I];
 						c8->I++;
