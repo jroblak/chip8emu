@@ -24,10 +24,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+//#include "SDL/SDL.h"
 
-#define prog_start 0x200
-#define prog_end = 0xFFF
-#define memory_size = 0xFFF
+#define USEMEMSTART 0x200
+#define USEMEMEND 0xFFF
+#define MEMSIZE 0xFFF
 
 unsigned char chip8_font[80] =
 {
@@ -49,8 +50,8 @@ unsigned char chip8_font[80] =
   0xF0, 0x80, 0xF0, 0x80, 0x80 
 };
 
-struct chip8_machine{
-    unsigned char memory[memory_size];
+struct chip8 {
+    unsigned char memory[MEMSIZE];
     unsigned char V[16];
     unsigned short I;
     unsigned short pc;
@@ -62,7 +63,7 @@ struct chip8_machine{
     unsigned char key[16];
 };
 
-typedef struct chip8_machine chip8;
+typedef struct chip8 chip8;
 
 void chip8_init(chip8*);
 void chip8_loadmem(chip8*, char*);
@@ -97,12 +98,12 @@ void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
 	sz = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
 
-	if (sz > (prog_end - prog_start)) {
+	if (sz > (USEMEMEND - USEMEMSTART)) {
 		printf("[-] Error - File too large.\n");
 		exit(-1);
 	}
 
-	fread(&(c8->memory[prog_start]), sz, sz, fp);
+	fread(&(c8->memory[USEMEMSTART]), sz, sz, fp);
 
 	fclose(fp);
 }
@@ -166,7 +167,7 @@ void chip8_exec(chip8 *c8) {
 			break;
 		case 0x8000:
 			switch (0x000F) {
-				case 0x0001: // 8xy0 - Set Vx = Vy.
+				case 0x0000: // 8xy0 - Set Vx = Vy.
 					c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x00F0) >> 4];
 					break;
 				case 0x0001: // 8xy1 - Set Vx = Vx OR Vy.
@@ -234,11 +235,11 @@ void chip8_exec(chip8 *c8) {
 		case 0xE000:
 			switch (opcode & 0x000F) {
 				case 0x000E: // Ex9E - Skip next instruction if key with the value of Vx is pressed.
-					if (c8->keys[c8->V[(opcode & 0x0F00) >> 8]] == 1) c8->pc += 4;
+					if (c8->key[c8->V[(opcode & 0x0F00) >> 8]] == 1) c8->pc += 4;
 					else c8->pc += 2;
 					break;
 				case 0x0001: // ExA1 - Skip next instruction if key with the value of Vx is not pressed.
-					if (c8->keys[c8->V[(opcode & 0x0F00) >> 8]] == 0) c8->pc += 4;
+					if (c8->key[c8->V[(opcode & 0x0F00) >> 8]] == 0) c8->pc += 4;
 					else c8->pc += 2;
 					break;
 				default:
@@ -277,24 +278,24 @@ void chip8_exec(chip8 *c8) {
 					c8->pc += 2;
 					break;
 				case 0x0033: // Fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
-					c8->memory[c8->I] = c8->V[(offset & 0x0F00) >> 8] / 100;
-					c8->memory[c8->I + 1] = (c8->V[(offset & 0x0F00) >> 8] % 100) / 10;
-					c8->memory[c8->I + 2] = c8->V[(offset & 0x0F00) >> 8] % 10;
+					c8->memory[c8->I] = c8->V[(opcode & 0x0F00) >> 8] / 100;
+					c8->memory[c8->I + 1] = (c8->V[(opcode & 0x0F00) >> 8] % 100) / 10;
+					c8->memory[c8->I + 2] = c8->V[(opcode & 0x0F00) >> 8] % 10;
 					c8->pc += 2;
 					break;
 				case 0x0055: // Fx55 - Store registers V0 through Vx in memory starting at location I.
 					int i;
-					for (i = 0; i < ((offset & 0x0F00) >> 8); i++) {
-						c8->memory[c8->I] = V[i];
-						c8->I++
+					for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
+						c8->memory[c8->I] = c8->V[i];
+						c8->I++;
 					}
 					c8->pc += 2;
 					break;
 				case 0x0065: // Fx65 - Read registers V0 through Vx from memory starting at location I.
 					int i;
-					for (i = 0; i < ((offset & 0x0F00) >> 8); i++) {
-						V[i] = c8->memory[c8->I];
-						c8->I++
+					for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
+						c8->V[i] = c8->memory[c8->I];
+						c8->I++;
 					}
 					c8->pc += 2;
 					break;
@@ -335,4 +336,3 @@ int main(int argc, char ** argv) {
 
     return 0;
 }
-
