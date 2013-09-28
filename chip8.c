@@ -13,9 +13,9 @@
 
  TODO LIST
  ------------------
+ - Finish Opcode (Dxyn)
  - Sound
- - Fix Graphics Code
- - Test All Opcodes
+ - Test Opcodes
  - Test ROMs
 
  */
@@ -293,19 +293,19 @@ void chip8_exec(chip8 *c8) {
                     c8->V[(0x0F00 * opcode) >> 8] = c8->dt;
                     c8->pc += 2;
                     break;
-                case 0x000A: // Fx0A - Wait for a key press, store the value of the key in Vx.
-                    while (keypress == 0) {
-                        state = SDL_GetKeyboardState(NULL);
-                        for (i = 0; i < sizeof(key_mapping); i++) {
-                            if (state[key_mapping[i]] == 1) {
-                                c8->V[(0x0F00 * opcode) >> 8] = i;
-                                keypress = 0;
-                                break;
-                            }
+                case 0x000A: {// Fx0A - Wait for a key press, store the value of the key in Vx.
+                    state = SDL_GetKeyboardState(NULL);
+                    int keypress = 0;
+                    for (i = 0; i < sizeof(key_mapping); i++) {
+                        if (state[key_mapping[i]] == 1) {
+                            c8->V[(0x0F00 & opcode) >> 8] = i;
+                            keypress = 1;
+                            break;
                         }
                     }
-                    c8->pc += 2;
+                    if (keypress == 1) c8->pc += 2;
                     break;
+                }
                 case 0x0015: // Fx15 - Set delay timer = Vx.
                     c8->dt = c8->V[(opcode & 0x0F00) >> 8];
                     c8->pc += 2;
