@@ -13,9 +13,9 @@
 
  TODO LIST
  ------------------
- - Finish Opcode (Dxyn)
+ - Fix graphics code
  - Sound
- - Test Opcodes
+ - Test All Opcodes
  - Test ROMs
 
  */
@@ -171,19 +171,19 @@ void chip8_exec(chip8 *c8) {
             c8->pc = opcode & 0x0FFF;
             break;
         case 0x3000: // (JE int) 3xkk - Skip next instruction if Vx = kk.
-            if (c8->V[(opcode & 0x0F000) >> 8] == (opcode & 0x00FF)) {
+            if (c8->V[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF)) {
                 c8->pc += 4;
             }
             else c8->pc += 2;
             break;
         case 0x4000: // (JNE int) 4xkk - Skip next instruction if Vx != kk.
-            if (c8->V[(opcode & 0x0F000) >> 8] != (opcode & 0x00FF)) {
+            if (c8->V[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF)) {
                 c8->pc += 4;
             }
             else c8->pc += 2;
             break;
         case 0x5000: // (JE reg) 5xy0 - Skip next instruction if Vx = Vy.
-            if (c8->V[(opcode & 0x0F00) >> 8] == c8->V[(opcode & 0x00F0) >> 8]) {
+            if (c8->V[(opcode & 0x0F00) >> 8] == c8->V[(opcode & 0x00F0) >> 4]) {
                 c8->pc += 4;
             }
             else c8->pc += 2;
@@ -238,7 +238,7 @@ void chip8_exec(chip8 *c8) {
             c8->pc += 2;
             break;
         case 0x9000: // (JNE reg) 9xy0 - Skip next instruction if Vx != Vy.
-            if (c8->V[(opcode & 0x0F00) >> 8] != c8->V[(opcode & 0x00F0) >> 8]) {
+            if (c8->V[(opcode & 0x0F00) >> 8] != c8->V[(opcode & 0x00F0) >> 4]) {
                 c8->pc += 4;
             }
             else c8->pc += 2;
