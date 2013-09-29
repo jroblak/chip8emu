@@ -1,23 +1,23 @@
 /*
-
+ 
      ______ _______ _______ ______ ______
     |      |   |   |_     _|   __ |  __  |
     |   ---|       |_|   |_|    __|  __  |
     |______|___|___|_______|___|  |______|
-
+ 
             e  m  u  l  a  t  o  r
-
-
+ 
+ 
            J u s t i n   O b l a k
-
-
+ 
+ 
  TODO LIST
  ------------------
- - Fix graphics code
  - Sound
- - Test All Opcodes
+ - Timers
+ - Test Opcodes
  - Test ROMs
-
+ 
  */
 
 
@@ -26,6 +26,7 @@
 #include <string.h>
 #include <time.h>
 #include "SDL.h"
+#include "SDL_mixer.h"
 
 #define USEMEMSTART 0x200
 #define USEMEMEND 0xFFF
@@ -97,17 +98,19 @@ void chip8_init(chip8*);
 void chip8_loadmem(chip8*, char*);
 void chip8_exec(chip8*);
 void chip8_draw(chip8*);
+void chip8_timers(chip8*);
+void chip8_sound(chip8*);
 
 void chip8_init(chip8 *c8) {
     c8->pc = 0x200;
     c8->I = 0;
     c8->sp = 0;
-
+    
     memset(c8->memory, 0, sizeof(c8->memory));
     memset(c8->gfx, 0, sizeof(c8->gfx));
     memset(c8->stack, 0, sizeof(c8->stack));
     memset(c8->V, 0, sizeof(c8->V));
-
+    
     return;
 }
 
@@ -115,36 +118,36 @@ void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
     int i;
     long sz = 0;
     FILE *fp;
-
+    
     for (i = 0; i < sizeof(chip8_font); i++) {
         c8->memory[i] = chip8_font[i];
     }
-
+    
     fp = fopen(prog_bin_path, "r");
-
+    
     fseek(fp, 0L, SEEK_END);
     sz = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
-
+    
     if (sz > (USEMEMEND - USEMEMSTART)) {
         printf("[-] Error - File too large.\n");
         exit(-1);
     }
-
+    
     fread(c8->memory + USEMEMSTART, sz, sz, fp);
-
+    
     fclose(fp);
 }
 
 void chip8_exec(chip8 *c8) {
     unsigned short opcode = (c8->memory[c8->pc] << 8) | c8->memory[c8->pc + 1];
     const Uint8 *state;
-    int i, keypress = 0;
-
+    int i;
+    
     printf("Executing: 0x%X\n", opcode);
     printf("pc: 0x%X\n", c8->pc);
     printf("I: 0x%X\n", c8->I);
-
+    
     switch (opcode & 0xF000) {
         case 0x0000:
             switch (opcode & 0x000F) {
@@ -258,14 +261,15 @@ void chip8_exec(chip8 *c8) {
         case 0xD000: { // Dxyn - Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
             // If the sprite is positioned so part of it is outside the coordinates of the display
             // it wraps around to the opposite side of the screen.
-            int x = opcode & 0x0F00;
-            int y = opcode & 0x00F0 >> 4;
+            int x = (opcode & 0x0F00) >> 8;
+            int y = (opcode & 0x00F0) >> 4;
             for (i = 0; i < (opcode & 0x000F); i++) {
                 for (int col = 0; col < 8; col++) {
-                    c8->gfx[c8->V[x + col] * WIDTH + c8->V[y + i]] ^= c8->memory[c8->I];
-                    if (c8->gfx[WIDTH] == 0) c8->V[0xF] = 0x1;
-                    c8->I++;
+                    unsigned char mem = c8->memory[c8->I] >> (7 - col) & 1;
+                    c8->gfx[(c8->V[x] + col) + (c8->V[y] + i) * WIDTH] ^= mem;
+                    if (c8->gfx[(c8->V[x] + col) + (c8->V[y] + i) * WIDTH] == 0x0) c8->V[0xF] = 0x1;
                 }
+                c8->I++;
             }
             c8->pc += 2;
             break;
@@ -355,12 +359,13 @@ void chip8_exec(chip8 *c8) {
 
 void chip8_draw(chip8* c8) {
     int i = 0;
-
+    
     for (i = 0; i < sizeof(c8->gfx); i++) {
         if (c8->gfx[i] == 0) sdl_gfx[i] = 0x00000000;
         else sdl_gfx[i] = 0xFFFFFFFF;
     }
-
+    
+    
     SDL_RenderClear(renderer);
     SDL_UpdateTexture(texture, NULL, sdl_gfx, 64 * sizeof(Uint32));
     SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -371,9 +376,9 @@ void sdl_init() {
     if(SDL_Init(SDL_INIT_EVERYTHING) == -1) {
         exit(-1);
     }
-
+    
     memset(sdl_gfx, 0, sizeof(sdl_gfx));
-
+    
     window = SDL_CreateWindow("Chip8 OSX", 100, 100, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
@@ -383,34 +388,49 @@ void sdl_init() {
     }
 }
 
+void chip8_timers(chip8 *c8) {
+    if (c8->dt > 0) {
+        c8->dt--;
+    }
+    if (c8->st > 0) {
+        c8->st--;
+    }
+}
+
+void chip8_sound(chip8 *c8) {
+    
+}
+
 int main(int argc, char* args[]) {
     int quit = 0;
     char *prog_bin_path;
     chip8 c8;
     srand((unsigned int)time(NULL));
-
+    
     if (argc < 2) {
         printf("[-] Error - Usage is chip8 [game_path].\n");
         return -1;
     }
     prog_bin_path = args[1];
-
+    
     chip8_init(&c8);
     sdl_init();
     chip8_loadmem(&c8, prog_bin_path);
-
+    
     SDL_Event e;
     while(1) {
         SDL_PollEvent(&e);
-
+        
         if (e.type == SDL_QUIT) quit = 1;
-
+        
         chip8_exec(&c8);
+        if (c8.dt > 0 || c8.st > 0) chip8_timers(&c8);
+        if (c8.st > 0) chip8_sound(&c8);
         chip8_draw(&c8);
     }
-
+    
     SDL_Delay(2000);
     SDL_Quit();
-
+    
     return 0;
 }
