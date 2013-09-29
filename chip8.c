@@ -13,10 +13,15 @@
  
  TODO LIST
  ------------------
- - Sound
- - Timers
  - Test Opcodes
  - Test ROMs
+    o Pong - 90%
+    o Connect4 - 70%
+    o Missile - 60%
+    o Brick - 50%
+    o Blinky - 5%
+    o Random Number Test - 100%
+ - Sound
  
  */
 
@@ -29,7 +34,6 @@
 #include "SDL_mixer.h"
 
 #define USEMEMSTART 0x200
-#define USEMEMEND 0xFFF
 #define MEMSIZE 0xFFF
 #define WIDTH 64
 #define HEIGHT 32
@@ -92,7 +96,11 @@ SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Surface *surface = NULL;
 SDL_Texture *texture = NULL;
+
+Mix_Chunk *sound = NULL;
+
 Uint32 sdl_gfx[WIDTH * HEIGHT];
+Uint32 timer_last = 0;
 
 void chip8_init(chip8*);
 void chip8_loadmem(chip8*, char*);
@@ -104,6 +112,8 @@ void chip8_sound(chip8*);
 void chip8_init(chip8 *c8) {
     c8->pc = 0x200;
     c8->I = 0;
+    c8->dt = 0;
+    c8->st = 0;
     c8->sp = 0;
     
     memset(c8->memory, 0, sizeof(c8->memory));
@@ -129,7 +139,7 @@ void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
     sz = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
     
-    if (sz > (USEMEMEND - USEMEMSTART)) {
+    if (sz > (MEMSIZE - USEMEMSTART)) {
         printf("[-] Error - File too large.\n");
         exit(-1);
     }
@@ -196,7 +206,7 @@ void chip8_exec(chip8 *c8) {
             c8->pc += 2;
             break;
         case 0x7000: // (ADD int) 7xkk - Set Vx = Vx + kk.
-            c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x0F00) >> 8] + opcode & 0x00FF;
+            c8->V[(opcode & 0x0F00) >> 8] += (opcode & 0x00FF);
             c8->pc += 2;
             break;
         case 0x8000:
@@ -254,8 +264,8 @@ void chip8_exec(chip8 *c8) {
             // push address to stack
             c8->pc = 0x0FFF & c8->V[0];
             break;
-        case 0xC000: // Cxkk - Set Vx = random byte AND kk.
-            c8->V[0x0F00 >> 8] = rand() & (opcode & 0x00FF);
+        case 0xC000: // Cxkk - Set Vx = random byte between 0 and 255 AND kk.
+            c8->V[(opcode & 0x0F00) >> 8] = (rand() % 256) & (opcode & 0x00FF);
             c8->pc += 2;
             break;
         case 0xD000: { // Dxyn - Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -265,11 +275,10 @@ void chip8_exec(chip8 *c8) {
             int y = (opcode & 0x00F0) >> 4;
             for (i = 0; i < (opcode & 0x000F); i++) {
                 for (int col = 0; col < 8; col++) {
-                    unsigned char mem = c8->memory[c8->I] >> (7 - col) & 1;
+                    unsigned char mem = c8->memory[c8->I + i] >> (7 - col) & 1;
                     c8->gfx[(c8->V[x] + col) + (c8->V[y] + i) * WIDTH] ^= mem;
                     if (c8->gfx[(c8->V[x] + col) + (c8->V[y] + i) * WIDTH] == 0x0) c8->V[0xF] = 0x1;
                 }
-                c8->I++;
             }
             c8->pc += 2;
             break;
@@ -294,7 +303,7 @@ void chip8_exec(chip8 *c8) {
         case 0xF000:
             switch (opcode & 0x00FF) {
                 case 0x0007: // Fx07 - Set Vx = delay timer value.
-                    c8->V[(0x0F00 * opcode) >> 8] = c8->dt;
+                    c8->V[(0x0F00 & opcode) >> 8] = c8->dt;
                     c8->pc += 2;
                     break;
                 case 0x000A: {// Fx0A - Wait for a key press, store the value of the key in Vx.
@@ -319,7 +328,7 @@ void chip8_exec(chip8 *c8) {
                     c8->pc += 2;
                     break;
                 case 0x001E: // Fx1E - Set I = I + Vx.
-                    c8->I = c8->I + c8->V[(opcode & 0x0F00) >> 8];
+                    c8->I += c8->V[(opcode & 0x0F00) >> 8];
                     c8->pc += 2;
                     break;
                 case 0x0029: // Fx29 - Set I = location of sprite for digit Vx.
@@ -330,19 +339,19 @@ void chip8_exec(chip8 *c8) {
                     c8->memory[c8->I] = c8->V[(opcode & 0x0F00) >> 8] / 100;
                     c8->memory[c8->I + 1] = (c8->V[(opcode & 0x0F00) >> 8] % 100) / 10;
                     c8->memory[c8->I + 2] = c8->V[(opcode & 0x0F00) >> 8] % 10;
+                    printf("Values 1: %d, 2: %d, 3: %d\n", c8->memory[c8->I],c8->memory[c8->I+1],c8->memory[c8->I+2]);
                     c8->pc += 2;
                     break;
                 case 0x0055: // Fx55 - Store registers V0 through Vx in memory starting at location I.
                     for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
-                        c8->memory[c8->I] = c8->V[i];
-                        c8->I++;
+                        c8->memory[c8->I + i] = c8->V[i];
                     }
                     c8->pc += 2;
                     break;
                 case 0x0065: // Fx65 - Read registers V0 through Vx from memory starting at location I.
                     for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
-                        c8->V[i] = c8->memory[c8->I];
-                        c8->I++;
+                        c8->V[i] = c8->memory[c8->I + i];
+                        printf("V[%d] = %d \n", i, c8->memory[c8->I + i]);
                     }
                     c8->pc += 2;
                     break;
@@ -386,19 +395,27 @@ void sdl_init() {
         printf("Error - %s\n", SDL_GetError());
         exit(-1);
     }
+    
+    if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 4096) == -1)
+    {
+        printf("Error - %s\n", Mix_GetError());
+        exit(-1);
+    }
 }
 
 void chip8_timers(chip8 *c8) {
     if (c8->dt > 0) {
-        c8->dt--;
+        c8->dt -= (SDL_GetTicks() - timer_last) / 10;
     }
     if (c8->st > 0) {
-        c8->st--;
+        c8->st -= (SDL_GetTicks() - timer_last) / 10;
     }
+    
+    timer_last = SDL_GetTicks();
 }
 
 void chip8_sound(chip8 *c8) {
-    
+    printf("BEEP\n");
 }
 
 int main(int argc, char* args[]) {
