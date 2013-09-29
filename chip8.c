@@ -1,28 +1,57 @@
 /*
- 
+
      ______ _______ _______ ______ ______
     |      |   |   |_     _|   __ |  __  |
     |   ---|       |_|   |_|    __|  __  |
     |______|___|___|_______|___|  |______|
- 
+
             e  m  u  l  a  t  o  r
- 
- 
+
+
            J u s t i n   O b l a k
- 
- 
+
+
  TODO LIST
  ------------------
  - Test Opcodes
- - Test ROMs
-    o Pong - 90%
-    o Connect4 - 70%
-    o Missile - 60%
-    o Brick - 50%
-    o Blinky - 5%
-    o Random Number Test - 100%
+ - Tests
+    o Pass: Logo, Random Number Test, IBM
+    o Fail:
+        - Pong - 90%
+        - Connect4 - 70%
+        - Missile - 60%
+        - JumpingXO - 50%
+ a solid 6×6spot block appears in the upper right quadrant of the tv display. A 5×5 "X" pattern appears in the center and jumps randomly to a new location every 1/5 second. When the X overlaps the 6×6 block, the X disappears, an "0" pattern appears in the center of the screen, and repeats the process, being replaced by the X when an overlap with the block occurs.
+        - MinGame - 50%
+        - Brick - 50%
+        - SQRT - 20%
+        - Blinky - 5%
+        - Clock - 5%
+ - Type six digits on the hex keypad for the desired clock starting time, using 23 hour format (ex.173055)
+ - Hit any hex key to start clock running at the above time setting.
+        - KeypadTest - 0%
+ press a chip8 key and the pressed char will light up
+ if you want to do something funny, soft-reset the chip8/emulator over and over,
+ and the sprite layout will become messed up ;p
+
+ chip8 keypad:
+ 1 2 3 c
+ 4 5 6 d
+ 7 8 9 e
+ a 0 b f
+        - Life - 0%
+ This is a display of cell growth, in accordance with the following rules:
+ 1. A cell is born if 3 cells are adjecent to an empty space.
+ 2. A cell lives if 2 or 3 cells are adjacent, and dies otherwise.
+ 3. All events take place simultaneously.
+
+ To start the game, you make a pattern by entering the cell coordinates, first
+ the "Y"from 0-7 downwards, then the "X" from 0-F across.
+ F initialises the program, and the number of scans is entered plus one, so that 1 gives 0 scans
+ to F giving 14, and 0 giving 255. The sit back and watch the colony live, or die.
+
  - Sound
- 
+
  */
 
 
@@ -60,22 +89,22 @@ unsigned char chip8_font[80] =
 };
 
 const Uint8 key_mapping[16] = {
-    SDL_SCANCODE_2, // 0 - 2
-    SDL_SCANCODE_Q, // 1 - Q
-    SDL_SCANCODE_W, // 2 - W
-    SDL_SCANCODE_E, // 3 - E
-    SDL_SCANCODE_A, // 4 - A
-    SDL_SCANCODE_S, // 5 - S
-    SDL_SCANCODE_D, // 6 - D
-    SDL_SCANCODE_Z, // 7 - Z
-    SDL_SCANCODE_X, // 8 - X
-    SDL_SCANCODE_C, // 9 - C
-    SDL_SCANCODE_1, // A - 1
-    SDL_SCANCODE_3, // B - 3
-    SDL_SCANCODE_R, // C - R
-    SDL_SCANCODE_V, // E - V
-    SDL_SCANCODE_F, // D - F
-    SDL_SCANCODE_4  // F - 4
+    SDL_SCANCODE_X, // 0 - X
+    SDL_SCANCODE_1, // 1 - 1
+    SDL_SCANCODE_2, // 2 - 2
+    SDL_SCANCODE_3, // 3 - 3
+    SDL_SCANCODE_Q, // 4 - Q
+    SDL_SCANCODE_W, // 5 - W
+    SDL_SCANCODE_E, // 6 - E
+    SDL_SCANCODE_A, // 7 - A
+    SDL_SCANCODE_S, // 8 - S
+    SDL_SCANCODE_D, // 9 - D
+    SDL_SCANCODE_Z, // A - Z
+    SDL_SCANCODE_C, // B - C
+    SDL_SCANCODE_4, // C - 4
+    SDL_SCANCODE_F, // E - F
+    SDL_SCANCODE_R, // D - R
+    SDL_SCANCODE_V  // F - V
 };
 
 struct chip8 {
@@ -115,12 +144,12 @@ void chip8_init(chip8 *c8) {
     c8->dt = 0;
     c8->st = 0;
     c8->sp = 0;
-    
+
     memset(c8->memory, 0, sizeof(c8->memory));
     memset(c8->gfx, 0, sizeof(c8->gfx));
     memset(c8->stack, 0, sizeof(c8->stack));
     memset(c8->V, 0, sizeof(c8->V));
-    
+
     return;
 }
 
@@ -128,24 +157,24 @@ void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
     int i;
     long sz = 0;
     FILE *fp;
-    
+
     for (i = 0; i < sizeof(chip8_font); i++) {
         c8->memory[i] = chip8_font[i];
     }
-    
+
     fp = fopen(prog_bin_path, "r");
-    
+
     fseek(fp, 0L, SEEK_END);
     sz = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
-    
+
     if (sz > (MEMSIZE - USEMEMSTART)) {
         printf("[-] Error - File too large.\n");
         exit(-1);
     }
-    
+
     fread(c8->memory + USEMEMSTART, sz, sz, fp);
-    
+
     fclose(fp);
 }
 
@@ -153,11 +182,11 @@ void chip8_exec(chip8 *c8) {
     unsigned short opcode = (c8->memory[c8->pc] << 8) | c8->memory[c8->pc + 1];
     const Uint8 *state;
     int i;
-    
+
     printf("Executing: 0x%X\n", opcode);
     printf("pc: 0x%X\n", c8->pc);
     printf("I: 0x%X\n", c8->I);
-    
+
     switch (opcode & 0xF000) {
         case 0x0000:
             switch (opcode & 0x000F) {
@@ -308,15 +337,13 @@ void chip8_exec(chip8 *c8) {
                     break;
                 case 0x000A: {// Fx0A - Wait for a key press, store the value of the key in Vx.
                     state = SDL_GetKeyboardState(NULL);
-                    int keypress = 0;
                     for (i = 0; i < sizeof(key_mapping); i++) {
                         if (state[key_mapping[i]] == 1) {
                             c8->V[(0x0F00 & opcode) >> 8] = i;
-                            keypress = 1;
-                            break;
+                            c8->pc += 2;
+                            printf("Key pressed: 0x%x", i);
                         }
                     }
-                    if (keypress == 1) c8->pc += 2;
                     break;
                 }
                 case 0x0015: // Fx15 - Set delay timer = Vx.
@@ -368,13 +395,13 @@ void chip8_exec(chip8 *c8) {
 
 void chip8_draw(chip8* c8) {
     int i = 0;
-    
+
     for (i = 0; i < sizeof(c8->gfx); i++) {
         if (c8->gfx[i] == 0) sdl_gfx[i] = 0x00000000;
         else sdl_gfx[i] = 0xFFFFFFFF;
     }
-    
-    
+
+
     SDL_RenderClear(renderer);
     SDL_UpdateTexture(texture, NULL, sdl_gfx, 64 * sizeof(Uint32));
     SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -385,9 +412,9 @@ void sdl_init() {
     if(SDL_Init(SDL_INIT_EVERYTHING) == -1) {
         exit(-1);
     }
-    
+
     memset(sdl_gfx, 0, sizeof(sdl_gfx));
-    
+
     window = SDL_CreateWindow("Chip8 OSX", 100, 100, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
@@ -395,7 +422,7 @@ void sdl_init() {
         printf("Error - %s\n", SDL_GetError());
         exit(-1);
     }
-    
+
     if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 4096) == -1)
     {
         printf("Error - %s\n", Mix_GetError());
@@ -410,7 +437,7 @@ void chip8_timers(chip8 *c8) {
     if (c8->st > 0) {
         c8->st -= (SDL_GetTicks() - timer_last) / 10;
     }
-    
+
     timer_last = SDL_GetTicks();
 }
 
@@ -423,31 +450,31 @@ int main(int argc, char* args[]) {
     char *prog_bin_path;
     chip8 c8;
     srand((unsigned int)time(NULL));
-    
+
     if (argc < 2) {
         printf("[-] Error - Usage is chip8 [game_path].\n");
         return -1;
     }
     prog_bin_path = args[1];
-    
+
     chip8_init(&c8);
     sdl_init();
     chip8_loadmem(&c8, prog_bin_path);
-    
+
     SDL_Event e;
     while(1) {
         SDL_PollEvent(&e);
-        
+
         if (e.type == SDL_QUIT) quit = 1;
-        
+
         chip8_exec(&c8);
         if (c8.dt > 0 || c8.st > 0) chip8_timers(&c8);
         if (c8.st > 0) chip8_sound(&c8);
         chip8_draw(&c8);
     }
-    
+
     SDL_Delay(2000);
     SDL_Quit();
-    
+
     return 0;
 }
