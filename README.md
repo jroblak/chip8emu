@@ -8,13 +8,4 @@
 
 
          J u s t i n   O b l a k
-
-
-	       TODO LIST
-	   ------------------
-	   - SDL integration
-		o Key presses
-		o Graphics
-	   - Finish Opcodes
-           - Test Opcodes
 ```
