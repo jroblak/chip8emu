@@ -19,7 +19,7 @@
 	- Slowwww
 
 	- Tests
-			o Pass: Logo, Random Number Test, IBM, Connect4, KeypadTest, SQRT, Pong, JumpingXO
+			o Pass: Logo, Random Number Test, IBM, Connect4, KeypadTest, SQRT, Pong, JumpingXO, SpaceInvaders
 		o Fail:
 			- Life - 70%
 				o Crashes trying to draw graphics out of bounds
@@ -234,7 +234,7 @@ void chip8_exec(chip8 *c8) {
             else c8->pc += 2;
             break;
         case 0x6000: // (MOV int) 6xkk - Set Vx = kk.
-            c8->V[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
+            c8->V[(opcode & 0x0F00) >> 8] = (opcode & 0x00FF);
             c8->pc += 2;
             break;
         case 0x7000: // (ADD int) 7xkk - Set Vx = Vx + kk.
@@ -261,7 +261,7 @@ void chip8_exec(chip8 *c8) {
                     c8->V[(opcode & 0x0F00) >> 8] += c8->V[(opcode & 0x00F0) >> 4];
                     break;
                 case 0x0005: // 8xy5 - Set Vx = Vx - Vy, set VF = NOT borrow.
-                    if (c8->V[(opcode & 0x0F00) >> 8] > c8->V[(opcode & 0x00F0) >> 4]) c8->V[0xF] = 0x1;
+                    if (c8->V[(opcode & 0x0F00) >> 8] >= c8->V[(opcode & 0x00F0) >> 4]) c8->V[0xF] = 0x1;
                     else c8->V[0xF] = 0x0;
                     c8->V[(opcode & 0x0F00) >> 8] -= c8->V[(opcode & 0x00F0) >> 4];
                     break;
@@ -270,7 +270,7 @@ void chip8_exec(chip8 *c8) {
                     c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x0F00) >> 8] >> 1;
                     break;
                 case 0x0007: // 8xy7 - Set Vx = Vy - Vx, set VF = NOT borrow.
-                    if (c8->V[(opcode & 0x0F00) >> 8] < c8->V[(opcode & 0x00F0) >> 4]) c8->V[0xF] = 0x1;
+                    if (c8->V[(opcode & 0x0F00) >> 8] <= c8->V[(opcode & 0x00F0) >> 4]) c8->V[0xF] = 0x1;
                     else c8->V[0xF] = 0x0;
                     c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x00F0) >> 4] - c8->V[(opcode & 0x0F00) >> 8];
                     break;
