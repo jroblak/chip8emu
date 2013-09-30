@@ -13,51 +13,34 @@
 
  TODO LIST
  ------------------
- - Test Opcodes
- - Tests
-    o Pass: Logo, Random Number Test, IBM
+ - Add Sound
+ - Flickering Graphics
+ - Input "pressed" too long
+
+
+  - Tests
+    o Pass: Logo, Random Number Test, IBM, Connect4, KeypadTest, SQRT
     o Fail:
-        - Pong - 90%
-        - Connect4 - 70%
+        - Pong - 99%
+		- Life - 70%
         - Missile - 60%
         - JumpingXO - 50%
- a solid 6×6spot block appears in the upper right quadrant of the tv display. A 5×5 "X" pattern appears in the center and jumps randomly to a new location every 1/5 second. When the X overlaps the 6×6 block, the X disappears, an "0" pattern appears in the center of the screen, and repeats the process, being replaced by the X when an overlap with the block occurs.
-        - MinGame - 50%
-        - Brick - 50%
-        - SQRT - 20%
-        - Blinky - 5%
-        - Clock - 5%
- - Type six digits on the hex keypad for the desired clock starting time, using 23 hour format (ex.173055)
- - Hit any hex key to start clock running at the above time setting.
-        - KeypadTest - 0%
- press a chip8 key and the pressed char will light up
- if you want to do something funny, soft-reset the chip8/emulator over and over,
- and the sprite layout will become messed up ;p
-
- chip8 keypad:
- 1 2 3 c
- 4 5 6 d
- 7 8 9 e
- a 0 b f
-        - Life - 0%
- This is a display of cell growth, in accordance with the following rules:
- 1. A cell is born if 3 cells are adjecent to an empty space.
- 2. A cell lives if 2 or 3 cells are adjacent, and dies otherwise.
- 3. All events take place simultaneously.
-
- To start the game, you make a pattern by entering the cell coordinates, first
- the "Y"from 0-7 downwards, then the "X" from 0-F across.
- F initialises the program, and the number of scans is entered plus one, so that 1 gives 0 scans
- to F giving 14, and 0 giving 255. The sit back and watch the colony live, or die.
-
- - Sound
+				A solid 6×6spot block appears in the upper right quadrant of the tv display. 
+				A 5×5 "X" pattern appears in the center and jumps randomly to a new location every 1/5 second.
+				When the X overlaps the 6×6 block, the X disappears, an "0" pattern appears in the center of the 
+				screen, and repeats the process	being replaced by the X when an overlap with the block occurs.
+        - Breakout - 70%
+        - Clock - 55%
+			Type six digits on the hex keypad for the desired clock starting time, using 23 hour format (ex.173055)
+			Hit any hex key to start clock running at the above time setting.
+		- Blinky - 0%
 
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
 #include "SDL.h"
 #include "SDL_mixer.h"
@@ -66,9 +49,9 @@
 #define MEMSIZE 0xFFF
 #define WIDTH 64
 #define HEIGHT 32
-#define BPP 32
+#define SPRITESIZE 5
 
-unsigned char chip8_font[80] =
+unsigned char chip8_font[16 * SPRITESIZE] =
 {
     0xF0, 0x90, 0x90, 0x90, 0xF0,
     0x20, 0x60, 0x20, 0x20, 0x70,
@@ -125,6 +108,7 @@ SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Surface *surface = NULL;
 SDL_Texture *texture = NULL;
+SDL_Event e;
 
 Mix_Chunk *sound = NULL;
 
@@ -155,17 +139,20 @@ void chip8_init(chip8 *c8) {
 
 void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
     int i;
-    long sz = 0;
+    size_t sz = 0;
     FILE *fp;
 
     for (i = 0; i < sizeof(chip8_font); i++) {
         c8->memory[i] = chip8_font[i];
     }
 
-    fp = fopen(prog_bin_path, "r");
+	if ((fp = fopen(prog_bin_path, "rb")) == NULL) {
+		perror("File not found.\n");
+		exit(-1);
+	}
 
     fseek(fp, 0L, SEEK_END);
-    sz = ftell(fp);
+    sz = (size_t)ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
     if (sz > (MEMSIZE - USEMEMSTART)) {
@@ -173,7 +160,7 @@ void chip8_loadmem(chip8 *c8, char* prog_bin_path) {
         exit(-1);
     }
 
-    fread(c8->memory + USEMEMSTART, sz, sz, fp);
+    fread(c8->memory + 0x200, sizeof(char), sz, fp);
 
     fclose(fp);
 }
@@ -182,10 +169,6 @@ void chip8_exec(chip8 *c8) {
     unsigned short opcode = (c8->memory[c8->pc] << 8) | c8->memory[c8->pc + 1];
     const Uint8 *state;
     int i;
-
-    printf("Executing: 0x%X\n", opcode);
-    printf("pc: 0x%X\n", c8->pc);
-    printf("I: 0x%X\n", c8->I);
 
     switch (opcode & 0xF000) {
         case 0x0000:
@@ -244,13 +227,13 @@ void chip8_exec(chip8 *c8) {
                     c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x00F0) >> 4];
                     break;
                 case 0x0001: // 8xy1 - Set Vx = Vx OR Vy.
-                    c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x0F00) >> 8] | c8->V[(opcode & 0x00F0) >> 4];
+                    c8->V[(opcode & 0x0F00) >> 8] |= c8->V[(opcode & 0x00F0) >> 4];
                     break;
                 case 0x0002: // 8xy2 - Set Vx = Vx AND Vy.
-                    c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x0F00) >> 8] & c8->V[(opcode & 0x00F0) >> 4];
+                    c8->V[(opcode & 0x0F00) >> 8] &= c8->V[(opcode & 0x00F0) >> 4];
                     break;
                 case 0x0003: // 8xy3 - Set Vx = Vx XOR Vy.
-                    c8->V[(opcode & 0x0F00) >> 8] = c8->V[(opcode & 0x0F00) >> 8] ^ c8->V[(opcode & 0x00F0) >> 4];
+                    c8->V[(opcode & 0x0F00) >> 8] ^= c8->V[(opcode & 0x00F0) >> 4];
                     break;
                 case 0x0004: // 8xy4 - Set Vx = Vx + Vy, set VF = carry.
                     if (c8->V[(opcode & 0x0F00) >> 8] + c8->V[(opcode & 0x00F0) >> 4] > 0xFF) c8->V[0xF] = 0x1;
@@ -290,8 +273,7 @@ void chip8_exec(chip8 *c8) {
             c8->pc += 2;
             break;
         case 0xB000: // (JMP plus offset) Bnnn - Jump to location nnn + V0.
-            // push address to stack
-            c8->pc = 0x0FFF & c8->V[0];
+            c8->pc = (opcode & 0x0FFF) + c8->V[0];
             break;
         case 0xC000: // Cxkk - Set Vx = random byte between 0 and 255 AND kk.
             c8->V[(opcode & 0x0F00) >> 8] = (rand() % 256) & (opcode & 0x00FF);
@@ -302,8 +284,9 @@ void chip8_exec(chip8 *c8) {
             // it wraps around to the opposite side of the screen.
             int x = (opcode & 0x0F00) >> 8;
             int y = (opcode & 0x00F0) >> 4;
+			int col = 0;
             for (i = 0; i < (opcode & 0x000F); i++) {
-                for (int col = 0; col < 8; col++) {
+                for (col = 0; col < 8; col++) {
                     unsigned char mem = c8->memory[c8->I + i] >> (7 - col) & 1;
                     c8->gfx[(c8->V[x] + col) + (c8->V[y] + i) * WIDTH] ^= mem;
                     if (c8->gfx[(c8->V[x] + col) + (c8->V[y] + i) * WIDTH] == 0x0) c8->V[0xF] = 0x1;
@@ -359,24 +342,23 @@ void chip8_exec(chip8 *c8) {
                     c8->pc += 2;
                     break;
                 case 0x0029: // Fx29 - Set I = location of sprite for digit Vx.
-                    c8->I = c8->V[(opcode & 0x0F00) >> 8] * 5;
+                    c8->I = c8->V[(opcode & 0x0F00) >> 8] * SPRITESIZE;
                     c8->pc += 2;
                     break;
                 case 0x0033: // Fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
                     c8->memory[c8->I] = c8->V[(opcode & 0x0F00) >> 8] / 100;
                     c8->memory[c8->I + 1] = (c8->V[(opcode & 0x0F00) >> 8] % 100) / 10;
                     c8->memory[c8->I + 2] = c8->V[(opcode & 0x0F00) >> 8] % 10;
-                    printf("Values 1: %d, 2: %d, 3: %d\n", c8->memory[c8->I],c8->memory[c8->I+1],c8->memory[c8->I+2]);
                     c8->pc += 2;
                     break;
                 case 0x0055: // Fx55 - Store registers V0 through Vx in memory starting at location I.
-                    for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
+                    for (i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
                         c8->memory[c8->I + i] = c8->V[i];
                     }
                     c8->pc += 2;
                     break;
                 case 0x0065: // Fx65 - Read registers V0 through Vx from memory starting at location I.
-                    for (i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
+                    for (i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
                         c8->V[i] = c8->memory[c8->I + i];
                         printf("V[%d] = %d \n", i, c8->memory[c8->I + i]);
                     }
@@ -400,7 +382,6 @@ void chip8_draw(chip8* c8) {
         if (c8->gfx[i] == 0) sdl_gfx[i] = 0x00000000;
         else sdl_gfx[i] = 0xFFFFFFFF;
     }
-
 
     SDL_RenderClear(renderer);
     SDL_UpdateTexture(texture, NULL, sdl_gfx, 64 * sizeof(Uint32));
@@ -461,8 +442,7 @@ int main(int argc, char* args[]) {
     sdl_init();
     chip8_loadmem(&c8, prog_bin_path);
 
-    SDL_Event e;
-    while(1) {
+    while(!quit) {
         SDL_PollEvent(&e);
 
         if (e.type == SDL_QUIT) quit = 1;
@@ -473,7 +453,6 @@ int main(int argc, char* args[]) {
         chip8_draw(&c8);
     }
 
-    SDL_Delay(2000);
     SDL_Quit();
 
     return 0;
