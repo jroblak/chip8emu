@@ -19,7 +19,7 @@
 	- Slowwww
 
 	- Tests
-			o Pass: Logo, Random Number Test, IBM, Connect4, KeypadTest, SQRT, Pong, JumpingXO, SpaceInvaders
+			o Pass: Logo, Random Number Test, IBM, Connect4, KeypadTest, SQRT, Pong, JumpingXO
 		o Fail:
 			- Life - 70%
 				o Crashes trying to draw graphics out of bounds
@@ -414,6 +414,7 @@ void chip8_draw(chip8* c8) {
     SDL_UpdateTexture(texture, NULL, sdl_gfx, WIDTH * SCALE * sizeof(Uint32));
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+	SDL_Delay(10);
 }
 
 void chip8_timers(chip8 *c8) {
@@ -448,14 +449,20 @@ int main(int argc, char* args[]) {
     chip8_loadmem(&c8, prog_bin_path);
 
     while(!quit) {
-        SDL_PollEvent(&e);
-
+      while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) quit = 1;
+        if (e.type == SDL_KEYDOWN) {
+          switch (e.key.keysym.sym) {
+            default:
+              break;
+          }
+        }
+      }
 
-        chip8_exec(&c8);
-        if (c8.dt > 0 || c8.st > 0) chip8_timers(&c8);
-        if (c8.st > 0) chip8_sound(&c8);
-        chip8_draw(&c8);
+      chip8_exec(&c8);
+      if (c8.dt > 0 || c8.st > 0) chip8_timers(&c8);
+      if (c8.st > 0) chip8_sound(&c8);
+      chip8_draw(&c8);
     }
 
     SDL_Quit();
