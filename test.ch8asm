@@ -1,9 +1,36 @@
-CLS                   // 200
-LDI 206               // 202
-JP 210                // 204
-.data FF,90,90,90,F0, // 209
-.data FF,90,90,90,F0, // 20f
-LD 0, 3               // 210
-LD 1, 3               // 212
-DRW 0, 1, 5           // 214
-LDKP 0                // 216
+CLS         // 200
+RET
+SYS
+JP 2a0
+CALL 7a0
+SE b, c2
+SNE 3, 0a
+SER a, 2
+LD a, 20
+ADD f, 01
+LDR c, a    // 220
+OR 0, 1
+AND 4, 3
+XOR 9, 8
+ADDR c, d
+SUB 4, 8
+SHR f
+SUBR d, e
+SHL 1
+SNER 1, 2
+LDI 822     // 240
+JPO 123
+RND a, ff
+DRW a, b, 5
+SKP 3
+SKNP 8
+LDRD 1
+LDKP 2
+LDDR 3
+LDST 4
+ADDI 5      // 260
+LDC 6
+LDBR 7
+LDIR 8
+LDRI 9
+.data FF,90,90,90,F0   // Example '0' sprite
