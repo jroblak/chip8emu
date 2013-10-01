@@ -66,16 +66,16 @@ LDI nnn - Load (I) - sets I to address nnnn
 JPO nnn 0 Jump (offset) - Jumps to address nnn + V0
 RND Vx, byte - Vx = random byte & Vx mask
 DRW Vx, Vy, nibble - Draws nibble-sized sprite pointed to by I at Vx, Vy
-SKP Vx
-SKNP Vx
-LDRD Vx
-LDKP Vx
-LDDR Vx
-LDST Vx
-ADDI
-LDC
-LDBR
-LDIR
-LDRI
+SKP Vx - Skip if key stored in Vx is pressed
+SKNP Vx - Skip if key stored in Vx is not pressed
+LDRD Vx - Load (R = D) - Vx = DT
+LDKP Vx - Load Keypress - wait for a keypress, then store it in Vx
+LDDR Vx - Load (D = R) - DT = Vx
+LDST Vx - Load (ST) - ST = Vx
+ADDI Vx - Add (I) I = Vx + I
+LDC Vx - Load (character) -  Set I to the address of the sprite in Vx
+LDBR Vx - Store BCD rep of Vx in I, I+1, and I+2
+LDIR Vx - Load (I = R) - Store registers V0 through Vx into memory starting at I
+LDRI Vx - Load (R = I) - Load registers V0 through Vx from memory starting at I
 
 ```
