@@ -16,6 +16,13 @@ E M U L A T O R
 usage: chip8 [path/to/file.ch8]
 
 
+T E S T  G A M E
+-----------------
+0xF (V) to start countdown
+0xF (V) to fire
+Fire before the computer does (easy)
+
+
 A S S E M B L E R
 -----------------
 usage: ch8asm [path/to/asm.ch8asm]
