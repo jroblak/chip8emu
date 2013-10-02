@@ -39,8 +39,7 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include "SDL.h"
-#include "SDL_mixer.h"
+#include "SDL2/SDL.h"
 
 #define USEMEMSTART 0x200
 #define MEMSIZE 0xFFF
@@ -108,8 +107,6 @@ SDL_Surface *surface = NULL;
 SDL_Texture *texture = NULL;
 SDL_Event e;
 
-Mix_Chunk *sound = NULL;
-
 Uint32 sdl_gfx[WIDTH * SCALE * HEIGHT * SCALE];
 Uint32 timer_last = 0;
 
@@ -142,17 +139,11 @@ void sdl_init() {
 
     memset(sdl_gfx, 0, sizeof(sdl_gfx));
 
-    window = SDL_CreateWindow("Chip8 Win", 100, 100, WIDTH * SCALE, HEIGHT * SCALE, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("Chip8 OSX", 100, 100, WIDTH * SCALE, HEIGHT * SCALE, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, WIDTH * SCALE, HEIGHT * SCALE);
     if (texture == NULL || window == NULL || texture == NULL){
         printf("Error - %s\n", SDL_GetError());
-        exit(-1);
-    }
-
-    if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 4096) == -1)
-    {
-        printf("Error - %s\n", Mix_GetError());
         exit(-1);
     }
 }

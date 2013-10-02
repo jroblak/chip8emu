@@ -1,0 +1,142 @@
+CLS                   // 200
+LDI 206               // 202
+JP 210                // 204
+.data 30,30,FC,B4,B4, // 206
+.data 30,78,48,48,48, // 20b
+LD 0, 3               // 210
+LD 1, 16              // 212
+DRW 0, 1, a           // 214
+LD 0, 37              // 216
+DRW 0, 1, a           // 218
+LD 2, f               // 21a
+LDKP e                // 21c
+SER e, 2
+JP 21c
+LD d, 1               // 222
+LD 3, a
+LD 0, 1c
+LD 1, a
+SUB 3, d              // 22a
+SE 3, 9
+DRW 0, 1, 5
+LDC 3                 // 230
+DRW 0, 1, 5
+LD 4, 00
+LDDR 4
+LDRD 4                // 238
+SE 4, 0
+JP 238
+SE 3, 0
+JP 22a
+DRW 0, 1, 5
+LD 5, d
+LDC 5                 // 246
+LD 0, 12
+LD 1, a
+DRW 0, 1, 5           // 24c
+JP 25a
+.data F0,90,E0,90,90, // 250
+.data 88,88,A8,A8,F8, // 255
+LDI 250               // 25a
+LD 0, 18
+DRW 0, 1, 5
+LD 5, a               // 260
+LDC 5
+LD 0, 1e
+DRW 0, 1, 5
+LDI 255
+LD 0, 24
+DRW 0, 1, 5
+LD 4, 02
+LDDR 4               // 270
+JP 288
+.data 30,30,FC,B7,B0, // 274
+.data 30,78,48,48,48, // 279
+.data 0C,0C,3F,ED,0D, // 27e
+.data 0C,1E,12,12,12, // 283
+LDRD 4                // 288
+SNE 4, 00
+JP 2a0
+SKP 2
+JP 288               // 290
+LDI 206
+LD 0, 3
+LD 1, 16
+DRW 0, 1, a
+LDI 274
+DRW 0, 1, a
+JP 2b0
+LDI 206              // 2a0
+LD 0, 37
+LD 1, 16
+DRW 0, 1, a
+LDI 27e
+LD 0, 34
+DRW 0, 1, a
+JP 2cc
+LDI 206           // 2b0
+LD 0, 37
+LD 1, 16
+DRW 0, 1, a
+JP 2c4
+.data 00,00,00,00,00, //2ba
+.data 00,00,FF,FF,FF, //2bf
+LDI 2ba     // 2c4
+DRW 0, 1, a
+CALL 2dc
+JP 310
+LDI 206
+LD 0, 3
+LD 1, 16              //2d0
+DRW 0, 1, a
+LDI 2ba
+DRW 0, 1, a
+CALL 2dc
+JP 326
+LD 5, d
+LDC 5
+LD 0, 12      // 2e0
+LD 1, a
+DRW 0, 1, 5
+LDI 250
+LD 0, 18
+DRW 0, 1, 5
+LD 5, a
+LDC 5
+LD 0, 1e       // 2f0
+DRW 0, 1, 5
+LDI 255
+LD 0, 24
+DRW 0, 1, 5
+RET
+.data 80,80,80,80,80,//2fc
+.data C4,A4,94,8C,84,//301
+.data 80,80,80,80,FF,//306
+.data F0,80,60,10,F0,//30b
+LDI 255         // 310
+LD 0, 16
+LD 1, a
+DRW 0, 1, 5
+LDI 2fc
+LD 0, 1c
+DRW 0, 1, 5
+LDI 301
+LD 0, 1f        // 320
+DRW 0, 1, 5
+JP 324  // ENNDDDDDD
+LDI 306         // 326
+LD 0, 16
+LD 1, a
+DRW 0, 1, 5
+LD 5, 0
+LDC 5           // 330
+LD 0, 1d
+DRW 0, 1, 5
+LDI 30b
+LD 0, 22
+DRW 0, 1, 5
+LD 5, e
+LDC 5
+LD 0, 28      // 340
+DRW 0, 1, 5
+JP 344
