@@ -10,29 +10,7 @@
 
            J u s t i n   O b l a k
 
-
- TODO LIST
- ------------------
-	- Add Sound
-	- Flickering Graphics
-	- Input "pressed" too long
-	- Slowwww
-
-	- Tests
-			o Pass: Logo, Random Number Test, IBM, Connect4, KeypadTest, SQRT, Pong, JumpingXO
-		o Fail:
-			- Life - 70%
-				o Crashes trying to draw graphics out of bounds
-			- Breakout - 95%
-				o Collision checking off
-			- Clock - 55%
-				o Input not working correctly
-				Type six digits on the hex keypad for the desired clock starting time, using 23 hour format (ex.173055)
-				Hit any hex key to start clock running at the above time setting.
-			- Blinky - 60%
-				o Slowwww
-
- */
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
